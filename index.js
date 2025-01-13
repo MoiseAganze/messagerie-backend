@@ -20,7 +20,7 @@ app.use("/", otherRoutes);
 
 let http;
 const ip_addr = process.env.backend_ip;
-if (process.env.en_ligne == true) {
+if (process.env.en_ligne == "true") {
   const options = {
     key: fs.readFileSync(`./ssl/${ip_addr}.key`),
     cert: fs.readFileSync(`./ssl/${ip_addr}.crt`),
