@@ -3,8 +3,7 @@ const User = require("../models/User");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://localhost:27017/Messagerie";
+const MONGO_URI = process.env.MONGO_URI;
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(MONGO_URI);
