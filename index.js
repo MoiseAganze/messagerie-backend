@@ -33,5 +33,5 @@ if (process.env.en_ligne == true) {
 require("./socket/io")(http);
 
 http.listen(process.env.PORT, process.env.hote_ip, () => {
-  console.log(`Serveur démarré sur le port ${port}`);
+  console.log(`Serveur démarré sur le port ${process.env.PORT}`);
 });
