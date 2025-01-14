@@ -2,6 +2,58 @@ const FriendRequest = require("../models/FriendRequest");
 const User = require("../models/User");
 const { createConversation } = require("./conversationsActions");
 
+async function addFriend(userid, senderid) {
+  try {
+    // Rechercher l'utilisateur cible
+    const user = await User.findOne({ _id: userid });
+    if (!user) {
+      return { success: false, message: "Utilisateur introuvable." };
+    }
+
+    // Rechercher le sender
+    const sender = await User.findOne({ _id: senderid });
+    if (!sender) {
+      return { success: false, message: "Sender introuvable." };
+    }
+
+    // Vérifier si le sender est déjà un ami de l'utilisateur
+    const isAlreadyFriendUser = user.friends.some(
+      (friend) => friend.userId.toString() === senderid
+    );
+
+    if (isAlreadyFriendUser) {
+      return { success: false, message: "Cet utilisateur est déjà un ami." };
+    }
+
+    // Vérifier si l'utilisateur est déjà un ami du sender
+    const isAlreadyFriendSender = sender.friends.some(
+      (friend) => friend.userId.toString() === userid
+    );
+
+    if (isAlreadyFriendSender) {
+      return {
+        success: false,
+        message: "L'utilisateur est déjà dans la liste d'amis du sender.",
+      };
+    }
+
+    // Ajouter le sender à la liste des amis de l'utilisateur
+    user.friends.push({ userId: senderid });
+
+    // Ajouter l'utilisateur à la liste des amis du sender
+    sender.friends.push({ userId: userid });
+
+    // Enregistrer les modifications
+    await user.save();
+    await sender.save();
+
+    return { success: true, message: "Amitié ajoutée avec succès." };
+  } catch (error) {
+    console.error("Erreur lors de l'ajout de l'ami :", error);
+    return { success: false, message: "Une erreur s'est produite." };
+  }
+}
+
 const sendInvit = async (userid, receiverid) => {
   try {
     // Vérifie si le destinataire existe
@@ -41,7 +93,7 @@ const sendInvit = async (userid, receiverid) => {
 const loadFriendsRequests = async (userId) => {
   try {
     const friends_requests = await FriendRequest.find({
-      $or: [{ receiver: userId }, { sender: userId }],
+      receiver: userId,
       status: "pending",
     })
       .populate("sender", "name email avatar")
@@ -53,21 +105,33 @@ const loadFriendsRequests = async (userId) => {
     return null;
   }
 };
-const loadFriends = async (userId) => {
+async function loadFriends(userid) {
   try {
-    const friends = await FriendRequest.find({
-      receiver: userId,
-      status: "accepted",
-    })
-      .populate("sender", "name email avatar")
-      .populate("receiver", "name email avatar");
+    // Rechercher l'utilisateur et peupler la liste des amis
+    const user = await User.findById(userid).populate({
+      path: "friends.userId", // Chemin vers les amis
+      select: "name email avatar", // Champs à inclure
+    });
+
+    if (!user) {
+      return null; // Retourner null si l'utilisateur n'existe pas
+    }
+
+    // Extraire les amis peuplés
+    const friends = user.friends.map((friend) => ({
+      id: friend.userId._id,
+      name: friend.userId.name,
+      email: friend.userId.email,
+      avatar: friend.userId.avatar,
+      addedAt: friend.addedAt,
+    }));
 
     return friends;
   } catch (error) {
-    console.error("Erreur lors du chargement des conversations :", error);
-    return null;
+    console.error("Erreur lors du chargement des amis :", error);
+    return null; // Retourner null en cas d'erreur
   }
-};
+}
 const acceptInvit = async (userid, senderid) => {
   try {
     const friendReq = await FriendRequest.findOneAndUpdate(
@@ -79,6 +143,10 @@ const acceptInvit = async (userid, senderid) => {
       { status: "accepted" }
     );
     if (!friendReq) {
+      return { success: false };
+    }
+    const add_friend = await addFriend(userid, senderid);
+    if (!add_friend) {
       return { success: false };
     }
     const conversation = await createConversation(userid, senderid);
