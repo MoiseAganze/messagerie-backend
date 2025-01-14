@@ -41,7 +41,7 @@ const sendInvit = async (userid, receiverid) => {
 const loadFriendsRequests = async (userId) => {
   try {
     const friends_requests = await FriendRequest.find({
-      receiver: userId,
+      $or: [{ receiver: userId }, { sender: userId }],
       status: "pending",
     })
       .populate("sender", "name email avatar")
