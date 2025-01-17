@@ -18,17 +18,7 @@ app.use(cors(corsOptions));
 app.use("/", authRoutes);
 app.use("/", otherRoutes);
 
-let http;
-const ip_addr = process.env.backend_ip;
-if (process.env.en_ligne == "true") {
-  const options = {
-    key: fs.readFileSync(`./ssl/${ip_addr}.key`),
-    cert: fs.readFileSync(`./ssl/${ip_addr}.crt`),
-  };
-  http = require("https").createServer(options, app);
-} else {
-  http = require("http").createServer(app);
-}
+const http = require("http").createServer(app);
 
 require("./socket/io")(http);
 
