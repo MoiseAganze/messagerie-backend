@@ -18,6 +18,8 @@ module.exports = function (http) {
     console.log("Un utilisateur est connecté :", socket.id);
     // Enregistrer l'utilisateur dès qu'il se connecte
     socket.on("user-connected", async (userId) => {
+      console.log("user id: ", userId);
+
       if (!users.some((user) => user.userId === userId)) {
         users.push({ userId, socketId: socket.id });
         const usr = await User.findByIdAndUpdate(userId, { status: "online" });
@@ -33,7 +35,9 @@ module.exports = function (http) {
     // Recevoir un message et le transmettre au destinataire
     socket.on("send-message", async (data) => {
       const { senderId, text, conversationId, receiverId } = data;
+
       console.log("Receiver ID reçu :", receiverId);
+      console.log("datas:", { senderId, text, conversationId, receiverId });
 
       if (!receiverId) {
         console.error("Receiver ID est manquant");
@@ -67,11 +71,23 @@ module.exports = function (http) {
     });
 
     // Lorsque l'utilisateur se déconnecte
-    socket.on("user-disconnect", async (userId) => {
-      console.log("Un utilisateur s'est déconnecté :", socket.id);
-      users = users.filter((user) => user.socketId !== socket.id);
-      const usr = await User.findByIdAndUpdate(userId, { status: "offline" });
-      await usr.save();
+    socket.on("disconnect", async () => {
+      try {
+        const userIndex = users.findIndex(
+          (user) => user.socketId === socket.id
+        );
+        if (userIndex !== -1) {
+          const disconnectedUser = users[userIndex];
+          users.splice(userIndex, 1);
+          const usr = await User.findByIdAndUpdate(disconnectedUser.userId, {
+            status: "offline",
+          });
+          await usr.save();
+          console.log(`Utilisateur ${disconnectedUser.userId} déconnecté.`);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la déconnexion :", error);
+      }
     });
   });
   return io; // Facultatif, au cas où vous voudriez utiliser l'instance ailleurs
