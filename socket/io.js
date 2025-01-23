@@ -1,4 +1,5 @@
 const { sendMessage } = require("../actions/conversationsActions");
+const User = require("../models/User");
 
 // Connexion WebSocket avec Socket.IO
 let users = []; // Liste des utilisateurs connectés
@@ -16,9 +17,11 @@ module.exports = function (http) {
   io.on("connection", (socket) => {
     console.log("Un utilisateur est connecté :", socket.id);
     // Enregistrer l'utilisateur dès qu'il se connecte
-    socket.on("user-connected", (userId) => {
+    socket.on("user-connected", async (userId) => {
       if (!users.some((user) => user.userId === userId)) {
         users.push({ userId, socketId: socket.id });
+        const usr = await User.findByIdAndUpdate(userId, { status: "online" });
+        await usr.save();
         console.log(
           `Utilisateur ${userId} ajouté avec socket ID : ${socket.id}`
         );
@@ -51,20 +54,24 @@ module.exports = function (http) {
         console.log("sender: " + sender.socketId);
         message._doc.isSender = true;
         io.to(sender.socketId).emit("receive-message", message);
+        io.to(sender.socketId).emit("refresh-conv", message);
       }
       if (receiver) {
         console.log("receiver: " + receiver.socketId);
         message._doc.isSender = false;
         io.to(receiver.socketId).emit("receive-message", message);
+        io.to(receiver.socketId).emit("refresh-conv", message);
       } else {
         console.error(`Destinataire ${receiverId} introuvable`);
       }
     });
 
     // Lorsque l'utilisateur se déconnecte
-    socket.on("disconnect", () => {
+    socket.on("user-disconnect", async (userId) => {
       console.log("Un utilisateur s'est déconnecté :", socket.id);
       users = users.filter((user) => user.socketId !== socket.id);
+      const usr = await User.findByIdAndUpdate(userId, { status: "offline" });
+      await usr.save();
     });
   });
   return io; // Facultatif, au cas où vous voudriez utiliser l'instance ailleurs

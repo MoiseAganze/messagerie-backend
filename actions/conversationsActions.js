@@ -67,7 +67,7 @@ const loadConversations = async (userId) => {
     const conversations = await Conversation.find({ participants: userId })
       .populate({
         path: "participants", // Inclure les infos des participants
-        select: "name avatar", // Limiter les champs retournés
+        select: "name avatar status", // Limiter les champs retournés
       })
       .populate({
         path: "lastMessage", // Inclure le dernier message
@@ -100,11 +100,26 @@ const markMessagesAsRead = async (conversationId, userId) => {
     throw new Error("Impossible de mettre à jour le statut des messages.");
   }
 };
-
+const get_conversation_by_participants = async (user1_id, user2_id) => {
+  try {
+    const conversation = await Conversation.findOne({
+      participants: {
+        $all: [user1_id, user2_id], // Les deux IDs doivent être présents
+      },
+    });
+    if (!conversation) {
+      return null;
+    }
+    return conversation._id;
+  } catch (error) {
+    return null;
+  }
+};
 module.exports = {
   loadConversations,
   sendMessage,
   createConversation,
   getMessages,
   markMessagesAsRead,
+  get_conversation_by_participants,
 };

@@ -15,6 +15,7 @@ const {
   loadFriends,
   rejectInvit,
 } = require("../actions/friendActions");
+const { get_user_datas } = require("../actions/otherActions");
 const router = express.Router();
 
 router.get("/conversations", verifyToken, async (req, res) => {
@@ -83,6 +84,16 @@ router.post("/reject-invit/:id", verifyToken, async (req, res) => {
     res.status(200).json(request);
   } else {
     res.status(400).json(request);
+  }
+});
+router.get("/user/:id", verifyToken, async (req, res) => {
+  const userdatas = req.userdatas;
+  const id = req.params.id;
+  const data = await get_user_datas(id, userdatas._id);
+  if (data.success) {
+    res.status(200).json(data);
+  } else {
+    res.status(400).json(data);
   }
 });
 module.exports = router;
