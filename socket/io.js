@@ -6,7 +6,7 @@ let users = []; // Liste des utilisateurs connectés
 module.exports = function (http) {
   const io = require("socket.io")(http, {
     cors: {
-      origin: process.env.frontend || "http://localhost:5173", // Remplacez par l'URL de votre frontend
+      origin: [process.env.FRONTEND_1, process.env.FRONTEND_2], // Remplacez par l'URL de votre frontend
       methods: ["GET", "POST"],
       allowedHeaders: ["Content-Type"],
       credentials: true, // Si vous utilisez des cookies ou des sessions
